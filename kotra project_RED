@@ -1,0 +1,1299 @@
+##글로우픽 화장퓸 리뷰 데이터 크롤링##
+
+from bs4 import BeautifulSoup
+from selenium import webdriver
+import time
+import sys
+import random
+import os
+import requests
+from selenium.webdriver.common.keys import Keys
+import pandas as pd
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+
+# 시작 시간
+s_time = time.time( )
+
+print('='*80)
+print('글로우픽 화장품 리뷰 수집')
+print('='*80)
+
+f_dir = input("driver1 파일을 저장할 폴더명만 쓰세요(예:c:\\temp\\):")
+print("\n")
+# howmany = int(input('크롤링할 건수 입력: '))
+cate = input('크롤링할 카테고리 선택\n1. 스킨케어   2. 페이스   3. 립   4. 아이   7. 클렌징   8. 마스크   9. 선케어   10. 바디\n')
+cate_sp = cate.split(',')
+cate_list = []
+for sp in cate_sp :
+    cate_list.append(sp)
+
+hmy = input('카테고리 별 끌어올 개수: ')
+hmy_sp = hmy.split(',')
+hmy_list = []
+for hsp in hmy_sp :
+    hmy_list.append(hsp)
+
+# 시간 불러오기 
+# s 를 지금 설정하고 바로 밑에다가 주루룩 선언을 해줘야 s 값이 안바뀜
+# 그래야 파일 저장할 때 디렉토리를 잘 찾음
+
+nw = time.localtime()
+s = '%04d-%02d-%02d-%02d-%02d-%02d' % (nw.tm_year, nw.tm_mon, nw.tm_mday, nw.tm_hour, nw.tm_min, nw.tm_sec)
+print(s)
+# hm = str(howmany)
+
+os.makedirs(f_dir+s+'-'+'top')
+os.chdir(f_dir+s+'-'+'top')
+fil = f_dir+s+'-'+'top'
+
+# 크롬 드라이버 선언
+path = "C:\\temp\\chromedriver_240\\chromedriver.exe"
+driver = webdriver.Chrome(path)
+
+url = 'https://www.glowpick.com/brand/ranking?id=397'  # 아이소이
+
+
+for cat, how in zip(cate_list, hmy_list) :
+    url_cat = url+'&level=1&category_id=%s&is_all=true'%cat
+    driver.get(url_cat)
+    print(url_cat)
+    how_int = int(how)
+    for i in range(1, how_int+1) :  # 끌어올 개수 설정
+
+        # 칼럼으로 쓸 list 선언
+        age_list = []
+        skin_list = []
+        cts_list = []
+
+        time.sleep(4)
+
+        # 상품이 20개씩 뜸, 그래서 20개 마다 화면 스크롤 내려줘야함
+        if i >= 20 and i <40 :
+            driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/section/h1').click()
+            body = driver.find_element_by_css_selector('body')
+            body.send_keys(Keys.END)
+            time.sleep(2)
+        elif i >= 40 and i < 60 :
+            driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/section/h1').click()
+            body = driver.find_element_by_css_selector('body')
+            body.send_keys(Keys.END)
+            time.sleep(2)   
+            body.send_keys(Keys.END)
+            time.sleep(2)
+        elif i >= 60 and i < 80:
+            driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/section/h1').click()
+            body = driver.find_element_by_css_selector('body')
+            body.send_keys(Keys.END)
+            time.sleep(2)  
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+        elif i >= 80 :
+            driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/section/h1').click()
+            body = driver.find_element_by_css_selector('body')
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+
+
+        # 몇번째 제품을 선택
+        wait = WebDriverWait(driver, 10)
+        element = wait.until(EC.element_to_be_clickable((By.Xpath, '//*[@id="gp-default-main"]/section/div/section/ul/li[%s]/div/div/div[1]/div[1]/figure/div/div/div')))
+        driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/section/ul/li[%s]/div/div/div[1]/div[1]/figure/div/div/div' %i).click()
+        
+        # 제품명 가져오기
+        full_html = driver.page_source
+        soup = BeautifulSoup(full_html, 'html.parser') 
+        pdt_nam = soup.find('span', class_= 'product-main-info__product_name__text').get_text()
+        pdt_nad = pdt_nam.strip()
+        pdt_name = pdt_nad.replace('/', ' ')
+
+        # 제품 이름에 / 있으면 위치저장할 때 에러뜨니까 공백으로 바꿔주기 (1시간 날림 ㅡㅡ)
+        try :
+            pdt_name = pdt_nad.replace('/', ' ')
+        except :
+            pdt_name = pdt_nad
+
+        # 건드리기도 싫음 묻지말고 그냥 하는게 정신건강에 좋음
+        r = str(i)
+
+        # 스크롤 내리기 
+        driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/ul[1]/li[2]/section[1]/h1/span').click()
+        body = driver.find_element_by_css_selector('body')
+        body.send_keys(Keys.PAGE_DOWN)
+        time.sleep(2)
+        body.send_keys(Keys.PAGE_DOWN)
+        time.sleep(1)
+
+        # 별점 가져오기
+        stars = soup.find('ul', class_= 'gpa-list').get_text()
+        stars_1 = stars.strip()
+        stars_2 = stars_1.replace(' ', '')
+
+        stars_3 = stars_2.split('\n\n')
+        stars_mea = soup.find('div', class_= 'section-list-score__rating-item score').get_text()
+        stars_mean = stars_mea.strip()
+        stars_3.append(stars_mean)
+
+        # 리뷰 개수 가져오기
+        rev_n = soup.find('span', class_= 'ratings__review_count').get_text()
+        rev_na = rev_n.replace('(', '')
+        rev_nb = rev_na.replace(')', '')
+
+        try :
+            rev_nc = rev_nb.replace(',', '')
+        except :
+            rev_nc = rev_nb
+
+        rev_no = int(rev_nc)
+
+        # 리뷰 100개 넘으면 필터적용
+        if rev_no > 100 :
+            for m in range(2, 7) :
+                time.sleep(2)
+                # 나이대 클릭
+                driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/ul[2]/li[1]/section[1]/div/section/div/form/fieldset[2]/ul/li[%s]/label' %m).click()  
+                time.sleep(1)
+
+                for s in range(2, 7) : # 나이대 마다 피부타입 다 땡겨오려고
+
+                    # 피부타입 클릭
+                    driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/ul[2]/li[1]/section[1]/div/section/div/form/fieldset[3]/ul/li[%s]/label' %s).click()
+                    time.sleep(1)
+
+                    # 필터적용 클릭 (이게 겁나 오래걸려서 15초 sleep)
+                    driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/ul[2]/li[1]/section[1]/div/section/div/div/button').click()
+                    time.sleep(15)
+
+                    # 스크롤 내리기 (횟수는 내 맘대로 설정 나중에 더 배워서 수정)
+                    # 스크롤을 내려야 리뷰가 뜸 (그런데 100개까지만 뜸)
+                    body = driver.find_element_by_css_selector('body')
+                    body.send_keys(Keys.END)
+                    time.sleep(2)
+                    body.send_keys(Keys.END)
+                    time.sleep(2)
+                    body.send_keys(Keys.END)
+                    time.sleep(2)
+                    body.send_keys(Keys.END)
+                    time.sleep(2)
+                    body.send_keys(Keys.END)
+                    time.sleep(2)
+
+                    # 스크롤 다 내린 페이지의 html 불러오기
+                    full_html = driver.page_source
+                    soup = BeautifulSoup(full_html, 'html.parser')
+
+                    # 리뷰 쓴 user 정보 가져오기 (나이, 피부성격)
+                    user_cts = soup.find_all('span', class_= 'txt')
+
+                    # 리뷰 내용 가져오기
+                    sty_cts = soup.find_all('p', class_= 'review') 
+
+                    for q, w in zip(user_cts, sty_cts) :
+
+                        # user 정보 텍스트 뽑기    
+                        txt_2 = q.get_text()
+
+                        # 이름이랑 피부타입 분리
+                        age = txt_2.split('·')[0]
+                        skin = txt_2.split('·')[1]
+
+                        # 리뷰 내용 텍스트 뽑기
+                        txt = w.get_text()
+
+                        # user 정보만 프린트 (메모리 절약?)
+                        print(txt_2)
+
+                        # 각 정보를 각 list에 append
+                        age_list.append(age)
+                        skin_list.append(skin)
+                        cts_list.append(txt)
+
+                    time.sleep(3)
+
+                    # 피부타입 다시 눌러서 적용취소
+                    driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/ul[2]/li[1]/section[1]/div/section/div/form/fieldset[3]/ul/li[%s]/label' %s).click()
+                    time.sleep(3)
+
+                time.sleep(1)
+                # 나이대 '전체' 클릭 (필터 리셋 시켜주려고)
+                driver.find_element_by_xpath('//*[@id="gp-default-main"]/section/div/ul[2]/li[1]/section[1]/div/section/div/form/fieldset[2]/ul/li[1]/label').click() 
+                time.sleep(1)
+
+        # 리뷰 100개 안넘으면 필터 없이 
+        else :
+            body = driver.find_element_by_css_selector('body')
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+            body.send_keys(Keys.END)
+            time.sleep(2)
+
+            # 스크롤 다 내린 페이지의 html 불러오기
+            full_html = driver.page_source
+            soup = BeautifulSoup(full_html, 'html.parser')
+
+            # 리뷰 쓴 user 정보 가져오기 (나이, 피부성격)
+            user_cts = soup.find_all('span', class_= 'txt')
+
+            # 리뷰 내용 가져오기
+            sty_cts = soup.find_all('p', class_= 'review') 
+
+            for q, w in zip(user_cts, sty_cts) :
+
+                # user 정보 텍스트 뽑기    
+                txt_2 = q.get_text()
+
+                # 이름이랑 피부타입 분리
+                age = txt_2.split('·')[0]
+                skin = txt_2.split('·')[1]
+
+                # 리뷰 내용 텍스트 뽑기
+                txt = w.get_text()
+
+                # user 정보만 프린트 (메모리 절약?)
+                #print(txt_2)
+
+                # 각 정보를 각 list에 append
+                age_list.append(age)
+                skin_list.append(skin)
+                cts_list.append(txt)
+
+        # DataFrame 만들어서 각 list를 칼럼으로 설정    
+        
+
+        # 파일이름에 들어가려면 문자열로 바꿔야 함
+        #hm = str(howmany)
+        r = str(i)
+        print(cat)
+        # 파일명
+        if cat == '1' :
+            print('스킨케어')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'스킨케어')
+            except :
+                pass
+            fc_name = fil+'\\'+'스킨케어'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '2' :
+            print('페이스')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'페이스')
+            except :
+                pass
+            fc_name = fil+'\\'+'페이스'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '3' :
+            print('립')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'립')
+            except :
+                pass
+            fc_name = fil+'\\'+'립'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '4' :
+            print('아이')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'아이')
+            except :
+                pass
+            fc_name = fil+'\\'+'아이'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '7' :
+            print('클렌징')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'클렌징')
+            except :
+                pass
+            fc_name = fil+'\\'+'클렌징'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '8' :
+            print('마스크')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'마스크')
+            except :
+                pass
+            fc_name = fil+'\\'+'마스크'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '9' :
+            print('선케어')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'선케어')
+            except :
+                pass
+            fc_name = fil+'\\'+'선케어'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+        elif cat == '10' :
+            print('바디')
+            review = pd.DataFrame()
+            review['나이'] = age_list
+            review['피부타입'] = skin_list
+            review['리뷰 내용'] = cts_list
+            # 그냥 칼럼에 주면 별점은 행이 5개 밖에 없어서 에러
+            # 그래서 그냥 칼럼을 먼저 생성하고 거기다가 리스트를 때려박음
+            review['별점 수'] = pd.Series(stars_3)
+            try :
+                os.makedirs(fil+'\\'+'바디')
+            except :
+                pass
+            fc_name = fil+'\\'+'바디'+'\\'+r+'-'+pdt_name+rev_nc+'.csv'
+            review.to_csv(fc_name, encoding= 'utf-8-sig', index = False)
+            
+
+        driver.get(url_cat)
+
+# 끝나는 시간, 걸린 시간 계산
+e_time = time.time( )
+t_time = e_time - s_time
+driver.close()
+print('소요시간 :%s초' %round(t_time, 1))
+print('시마이 땡')
+
+
+
+##감성점수##
+from google.colab import drive
+drive.mount('/content/gdrive/', force_remount=True)
+
+!apt-get update
+!apt-get install g++ openjdk-8-jdk
+!pip install JPype1==0.7.4
+!pip install rhinoMorph
+import rhinoMorph
+rn = rhinoMorph.startRhino()
+
+!pip install rhinoMorphExtension
+from rhinoMorphExtension import findKeywordSentences
+import openpyxl
+import os
+import pandas as pd
+from collections import Counter
+
+def read_data(filename, encoding = 'cp949') :
+  with open(filename, 'r', encoding = encoding) as f :
+    data = [line.split('\t') for line in f.read().splitlines()]
+    data = data[1:]
+  return data
+
+def write_data(data, filename, encoding = 'cp949') :
+  with open(filename, 'w', encoding = encoding) as f :
+    f.write(data)
+
+def cntWordInLine(data, senti) :
+  senti_found = []
+  for onedata in data :
+    oneline_word = onedata.split(' ')
+    senti_temp = 0
+    for sentiword in senti :
+      if sentiword[0] in oneline_word :
+        senti_temp += 1
+    senti_found.append(senti_temp)
+  return senti_found
+  
+%cd /content/gdrive/My Drive/RED/data/세럼/베트남
+os.listdir()
+
+%cd /content/gdrive/My Drive/RED/data/세럼/베트남
+data_list = os.listdir()
+
+# file 디렉토리 설정(data 파일이 있는 곳으로)
+# %cd /content/drive/My\ Drive/RED/data/스킨케어\ 1000개/
+# data_list = os.listdir()   # 디렉토리 안에 있는 data 파일의 리스트
+cnt = 1
+for data_each in data_list :   # data 파일 하나씩 가져오기
+  %cd /content/gdrive/My Drive/RED/data/세럼/베트남  # 밑에 파일 저장하는 디렉토리를 따로 설정해줘서 다시 data 파일이 있는 디렉토리로 선언
+  data_list = os.listdir()   # 디렉토리 안에 있는 data 파일의 리스트
+  print(data_each+' 빈도분석 시작')
+  data = pd.read_csv(data_each, encoding = 'utf-8-sig')   # data 파일 읽기
+  pdt_name = data_each[:-4]    # data 파일이름에서 .csv 빼고 가져오기
+  # data_age = data['나이']
+  data_text = data['리뷰']
+
+  rhino_list = []
+
+  for text in data_text :
+    text_analyzed = rhinoMorph.onlyMorph_list(rn, text, pos = ['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'])
+    joined_text_analyzed = ' '.join(text_analyzed)
+    rhino_list.append(joined_text_analyzed)
+  
+  merged_text_analyzed = ' '.join(rhino_list)
+  merged_list = merged_text_analyzed.split(' ')
+  wordinfo = Counter(merged_list)   # 빈도분석
+
+
+
+  data_senti = []
+
+  %cd /content/gdrive/My Drive/RED/dic/
+  positive = read_data('positive.txt')
+  negative = read_data('negative.txt')
+
+  data_senti_poscnt = cntWordInLine(rhino_list, positive)
+  data_senti_negcnt = cntWordInLine(rhino_list, negative)
+
+  #print(data_senti_poscnt)
+  #print(data_senti_negcnt)
+  #%cd /content/gdrive/My Drive/RED/data/세럼
+
+  newdata = pd.DataFrame({'나이':data_age, '리뷰 내용':data_text, '형태소':rhino_list, '긍정점수':data_senti_poscnt, '부정점수':data_senti_negcnt})
+  
+  print(newdata)
+  %cd /content/gdrive/My Drive/RED/빈도분석 결과
+  newdata.to_csv(pdt_name+'morphed'+'.csv', encoding = 'utf-8-sig', index = False)
+
+data_senti_poscnt = cntWordInLine(rhino_list, positive)
+data_senti_negcnt = cntWordInLine(rhino_list, negative)
+
+print(data_senti_poscnt)
+print(data_senti_negcnt)
+
+%cd /content/gdrive/My Drive/RED/data/스킨케어 1000개
+
+march = pd.read_csv('2-서플 프레퍼레이션 페이셜 토너4288.csv')
+march
+
+#%cd /content/gdrive/My Drive/RED/data/세럼/베트남
+#data_list = os.listdir()
+
+# file 디렉토리 설정(data 파일이 있는 곳으로)
+# %cd /content/drive/My\ Drive/RED/data/스킨케어\ 1000개/
+# data_list = os.listdir()   # 디렉토리 안에 있는 data 파일의 리스트
+#cnt = 1
+#for data_each in data_list :   # data 파일 하나씩 가져오기
+#%cd /content/gdrive/My Drive/RED/data/세럼/베트남  # 밑에 파일 저장하는 디렉토리를 따로 설정해줘서 다시 data 파일이 있는 디렉토리로 선언
+#data_list = os.listdir()   # 디렉토리 안에 있는 data 파일의 리스트
+%cd /content/gdrive/My Drive/RED/data/스킨케어 1000개/
+#print(data_each+' 빈도분석 시작')
+data = pd.read_csv('2-서플 프레퍼레이션 페이셜 토너4288.csv', encoding = 'utf-8-sig')   # data 파일 읽기
+#pdt_name = data_each[:-4]    # data 파일이름에서 .csv 빼고 가져오기
+pdt_name = '2-서플 프레퍼레이션 페이셜 토너4288.csv'
+# data_age = data['나이']
+data_text = data['리뷰 내용']
+
+rhino_list = []
+
+for text in data_text :
+  text_analyzed = rhinoMorph.onlyMorph_list(rn, text, pos = ['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'])
+  joined_text_analyzed = ' '.join(text_analyzed)
+  rhino_list.append(joined_text_analyzed)
+
+merged_text_analyzed = ' '.join(rhino_list)
+merged_list = merged_text_analyzed.split(' ')
+wordinfo = Counter(merged_list)   # 빈도분석
+
+
+
+data_senti = []
+
+%cd /content/gdrive/My Drive/RED/dic/
+positive = read_data('positive.txt')
+negative = read_data('negative.txt')
+
+data_senti_poscnt = cntWordInLine(rhino_list, positive)
+data_senti_negcnt = cntWordInLine(rhino_list, negative)
+
+#print(data_senti_poscnt)
+#print(data_senti_negcnt)
+#%cd /content/gdrive/My Drive/RED/data/세럼
+
+newdata = pd.DataFrame({'나이':data_age, '리뷰 내용':data_text, '형태소':rhino_list, '긍정점수':data_senti_poscnt, '부정점수':data_senti_negcnt})
+
+print(newdata)
+%cd /content/gdrive/My Drive/RED/빈도분석 결과
+newdata.to_csv(pdt_name+'morphed'+'.csv', encoding = 'utf-8-sig', index = False)
+
+data = rhino_list
+keywords = ['포장', '디자인']
+
+found_sentences = findKeywordSentences.findKeySentence(data = rhino_list, keywords = keywords) # pos 로도 가능 기본값은 all
+print(found_sentences)
+
+
+rev = found_sentences.keys()
+list_rev = list(rev)
+keyword = found_sentences.values()
+list_keyword = list(keyword)
+list_keyword_each = [each[0] for each in list_keyword]
+
+data_senti_poscnt = cntWordInLine(list_rev, positive)
+data_senti_negcnt = cntWordInLine(list_rev, negative)
+
+print(data_senti_poscnt)
+print(data_senti_negcnt)
+
+senti = pd.DataFrame({'형태소 리뷰':list_rev, '키워드':list_keyword_each, '긍정점수':data_senti_poscnt, '부정점수':data_senti_negcnt})
+senti
+
+senti_score = senti['긍정점수'] - senti['부정점수']
+senti['감성점수'] = senti_score
+senti
+
+last_score = []
+for i in range(0, len(senti)) :
+  if int(senti['감성점수'][i]) > 0 :
+    last_score.append(1)
+  elif int(senti['감성점수'][i]) < 0 :
+    last_score.append(0)
+  else :
+    last_score.append('null')
+
+senti['최종점수'] = last_score
+senti
+
+senti.to_csv(pdt_name+'디자인 최종점수'+'.csv', encoding = 'utf-8-sig', index = False)
+
+os.getcwd()
+
+design_score = pd.read_csv(pdt_name+'디자인 최종점수'+'.csv', encoding = 'utf-8-sig', index = False)
+texture_score = pd.read_csv(pdt_name+'텍스처 최종점수'+'.csv', encoding = 'utf-8-sig', index = False)
+function_socre = 
+
+os.listdir()
+
+%cd /content/gdrive/My Drive/RED/빈도분석 결과/score
+
+last_scores = os.listdir()
+
+last_scores[0]
+
+for last in last_score :
+  print(last)
+  df = pd.read_csv(last, encoding = 'utf-8-sig', index = False)
+  la_list = df['최종점수']
+  
+##긍/부정별 키워드 빈도 순위##
+
+from google.colab import drive
+drive.mount('/content/gdrive/', force_remount=True)
+
+!apt-get update
+!apt-get install g++ openjdk-8-jdk
+!pip install JPype1==0.7.4
+!pip install rhinoMorph
+import rhinoMorph
+rn = rhinoMorph.startRhino()
+
+!pip install rhinoMorphExtension
+from rhinoMorphExtension import findKeywordSentences
+import openpyxl
+import os
+import pandas as pd
+from collections import Counter
+
+os.chdir('/content/gdrive/My Drive/RED/data/카테고리별 국가별 제품들/한국/bERT')
+data = pd.read_csv('bERT7-닥터트럽 트러블 클렌져1009.csv')
+review = data['리뷰']
+bert_list = data['bERT']
+review_all = []
+rhino_list = []
+rhino_bert_list = []
+
+for re, bert in zip(review, bert_list) :
+  review_all.append(re)
+  text_analyzed = rhinoMorph.onlyMorph_list(rn, re, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'])
+  text_analyzed = ' '.join(text_analyzed) 
+  rhino_list.append(text_analyzed)
+  rhino_bert_list.append(bert)
+
+merged_text_analyzed = ' '.join(rhino_list)
+merged_list = merged_text_analyzed.split(' ') 
+wordinfo = Counter(merged_list)
+
+freq_wor = sorted(wordinfo, key = wordinfo.get, reverse = True)
+freq_cnt = sorted(wordinfo.values(), reverse = True)
+
+
+
+# freq_list.append(merged_list)  
+
+# s_freq_list = sum(freq_list, [])  # change nested to normal
+
+# counter_freq = Counter(s_freq_list)  # dict type
+
+# freq = sorted(counter_freq, key = counter_freq.get, reverse = True)
+# freq_cnt = sorted(counter_freq.values(), reverse = True)
+
+
+os.chdir('/content/gdrive/My Drive/RED/data/카테고리별 국가별 제품들/태국/bERT')
+data = pd.read_csv('foam_cleansing.csv')
+review = data['리뷰']
+bert_list = data['bERT']
+review_all = []
+rhino_list = []
+rhino_bert_list = []
+
+p_re_list = []
+n_re_list = []
+for re, bert in zip(review, bert_list) :
+  if bert == 1 :
+    p_re_list.append(re)
+  elif bert == 0 :
+    n_re_list.append(re)
+
+p_rhino_list = []
+n_rhino_list = []
+for re in p_re_list :
+  text_analyzed = rhinoMorph.onlyMorph_list(rn, re, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'])
+  text_analyzed = ' '.join(text_analyzed)
+  p_rhino_list.append(text_analyzed)
+for rf in n_re_list :
+  text_analyzed = rhinoMorph.onlyMorph_list(rn, rf, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'])
+  text_analyzed = ' '.join(text_analyzed)
+  n_rhino_list.append(text_analyzed)
+
+p_merged_text_analyzed = ' '.join(p_rhino_list)  
+p_merged_list = p_merged_text_analyzed.split(' ')
+p_wordinfo = Counter(p_merged_list)
+
+# p_freq_wor = sorted(p_wordinfo, key = wordinfo.get, reverse = True)
+# p_freq_cnt = sorted(p_wordinfo.values(), reverse = True)
+
+
+n_merged_text_analyzed = ' '.join(n_rhino_list)
+n_merged_list = n_merged_text_analyzed.split(' ')
+n_wordinfo = Counter(n_merged_list)
+
+# n_freq_wor = sorted(n_wordinfo, key = wordinfo.get, reverse = True)
+# n_freq_cnt = sorted(n_wordinfo.values(), reverse = True)
+
+pos_neg = pd.DataFrame()
+pos_neg['index'] = pd.Series(range(1, 200))
+# pos_neg['형태소(긍정문)'] = pd.Series(p_freq_wor)
+# pos_neg['빈도 수(긍정문)'] = pd.Series(p_freq_cnt)
+# pos_neg['형태소(부정문)'] = pd.Series(n_freq_wor)
+# pos_neg['빈도 수(부정문)'] = pd.Series(n_freq_cnt)
+del pos_neg['index']
+
+# os.chdir('/content/gdrive/My Drive/RED/data/카테고리별 국가별 제품들/한국/긍부정별 키워드 빈도 순위')
+# pos_neg.to_csv('pos_neg_bERT7-닥터트럽 트러블 클렌져1009.csv', encoding = 'utf-8-sig', index = False)
+
+# 클렌징폼 키워드 사전
+funct_keywords = ['여드름', '트러블', '효과', '스크럽', '피지', '헤드', '진정', '뾰루지', '가라앉', '화이트헤드', '화농', '필링', '홍조', '개선', '노폐물', '소금', '붉은', '아토피', '모낭', '진정효', '미백', '솔트', '환하', '생리', '효능']
+p_funct_sentences = findKeywordSentences.findKeySentence(data = p_rhino_list, keywords = funct_keywords) 
+n_funct_sentences = findKeywordSentences.findKeySentence(data = n_rhino_list, keywords = funct_keywords) 
+use_keywords = ['건조', '당기', '촉촉', '뽀득뽀득', '부드럽', '뽀드득', '개안', '따갑', '가볍', '땡기', '사용감', '보들보들', '산뜻', '부들부들', '맨들', '매끈', '찝찝', '미끄덩', '상쾌', '미끌거리', '뽀독뽀독', '건강', '미끌', '매끈매끈', '몽글몽글', '뽀드득거리', '뽀드득뽀드득', '오돌토돌']
+p_use_sentences = findKeywordSentences.findKeySentence(data = p_rhino_list, keywords = use_keywords)
+n_use_sentences = findKeywordSentences.findKeySentence(data = n_rhino_list, keywords = use_keywords)
+clean_keywords = ['화장', '기름', '닦이', '유분', '잔여물', '진하', '미끌미끌', '미세먼지', '개기름', '지우기', '깨끗이', '잔여', '묻어나', '말끔히', '깨긋히', '말끔', '성능']
+p_clean_sentences = findKeywordSentences.findKeySentence(data = p_rhino_list, keywords = clean_keywords)
+n_clean_sentences = findKeywordSentences.findKeySentence(data = n_rhino_list, keywords = clean_keywords)
+sensi_keywords = ['순하', '약산성', '자극', '성분', '민감', '자극적', '예민', '뒤집', '아프', '향료', '순함', '마일드', '피부염', '간지럽', '빨갛', '파우더', '안심', '가렵', '붉어지', '유발', '환절기', '울긋불긋', '뒤집히']
+p_sensi_sentences = findKeywordSentences.findKeySentence(data = p_rhino_list, keywords = sensi_keywords)
+n_sensi_sentences = findKeywordSentences.findKeySentence(data = n_rhino_list, keywords = sensi_keywords)
+form_keywords = ['거품', '풍성', '제형', '무르', '쫀듯', '질감', '단단']
+p_form_sentences = findKeywordSentences.findKeySentence(data = p_rhino_list, keywords = form_keywords)
+n_form_sentences = findKeywordSentences.findKeySentence(data = n_rhino_list, keywords = form_keywords)
+scent_keywords = ['냄새', '향이', '향도', '레몬', '향기', '상큼', '은은', '허브', '인공적', '냄새나', '우유']
+p_scent_sentences = findKeywordSentences.findKeySentence(data = p_rhino_list, keywords = scent_keywords)
+n_scent_sentences = findKeywordSentences.findKeySentence(data = n_rhino_list, keywords = scent_keywords)
+
+keywords_list = [funct_keywords, use_keywords, clean_keywords, sensi_keywords, form_keywords, scent_keywords]
+eval_list = ['funct', 'use', 'clean', 'sensi', 'form', 'scent']
+p_sentence_list = [p_funct_sentences, p_use_sentences, p_clean_sentences, p_sensi_sentences, p_form_sentences, p_scent_sentences]
+n_sentence_list = [n_funct_sentences, n_use_sentences, n_clean_sentences, n_sensi_sentences, n_form_sentences, n_scent_sentences]
+
+p_result = ['p_res_fun', 'p_res_use', 'p_res_cle', 'p_res_sen', 'p_res_for', 'p_res_sct']
+n_result = ['n_res_fun', 'n_res_use', 'n_res_cle', 'n_res_sen', 'n_res_for', 'n_res_sct']
+
+pf_wod = list(Counter(sum(list(p_funct_sentences.values()), [])).keys())
+pf_freq = list(Counter(sum(list(p_funct_sentences.values()), [])).values())
+pu_wod = list(Counter(sum(list(p_use_sentences.values()), [])).keys())
+pu_freq = list(Counter(sum(list(p_use_sentences.values()), [])).values())
+pc_wod = list(Counter(sum(list(p_clean_sentences.values()), [])).keys())
+pc_freq = list(Counter(sum(list(p_clean_sentences.values()), [])).values())
+ps_wod = list(Counter(sum(list(p_sensi_sentences.values()), [])).keys())
+ps_freq = list(Counter(sum(list(p_sensi_sentences.values()), [])).values())
+pfo_wod = list(Counter(sum(list(p_form_sentences.values()), [])).keys())
+pfo_freq = list(Counter(sum(list(p_form_sentences.values()), [])).values())
+psc_wod = list(Counter(sum(list(p_scent_sentences.values()), [])).keys())
+psc_freq = list(Counter(sum(list(p_scent_sentences.values()), [])).values())
+
+nf_wod = list(Counter(sum(list(n_funct_sentences.values()), [])).keys())
+nf_freq = list(Counter(sum(list(n_funct_sentences.values()), [])).values())
+nu_wod = list(Counter(sum(list(n_use_sentences.values()), [])).keys())
+nu_freq = list(Counter(sum(list(n_use_sentences.values()), [])).values())
+nc_wod = list(Counter(sum(list(n_clean_sentences.values()), [])).keys())
+nc_freq = list(Counter(sum(list(n_clean_sentences.values()), [])).values())
+ns_wod = list(Counter(sum(list(n_sensi_sentences.values()), [])).keys())
+ns_freq = list(Counter(sum(list(n_sensi_sentences.values()), [])).values())
+nfo_wod = list(Counter(sum(list(n_form_sentences.values()), [])).keys())
+nfo_freq = list(Counter(sum(list(n_form_sentences.values()), [])).values())
+nsc_wod = list(Counter(sum(list(n_scent_sentences.values()), [])).keys())
+nsc_freq = list(Counter(sum(list(n_scent_sentences.values()), [])).values())
+
+pos_neg = pd.DataFrame()
+pos_neg['index'] = pd.Series(range(1, 200))
+pos_neg['기긍 키워드'] = pd.Series(pf_wod)
+pos_neg['기긍 빈도 수'] = pd.Series(pf_freq)
+pos_neg['기부 키워드'] = pd.Series(nf_wod)
+pos_neg['기부 빈도 수'] = pd.Series(nf_freq)
+pos_neg['사긍 키워드'] = pd.Series(pu_wod)
+pos_neg['사긍 빈도 수'] = pd.Series(pu_freq)
+pos_neg['사부 키워드'] = pd.Series(nu_wod)
+pos_neg['사부 빈도 수'] = pd.Series(nu_freq)
+pos_neg['세긍 키워드'] = pd.Series(pc_wod)
+pos_neg['세긍 빈도 수'] = pd.Series(pc_freq)
+pos_neg['세부 키워드'] = pd.Series(nc_wod)
+pos_neg['세부 빈도 수'] = pd.Series(nc_freq)
+pos_neg['자긍 키워드'] = pd.Series(ps_wod)
+pos_neg['자긍 빈도 수'] = pd.Series(ps_freq)
+pos_neg['자부 키워드'] = pd.Series(ns_wod)
+pos_neg['자부 빈도 수'] = pd.Series(ns_freq)
+pos_neg['제긍 키워드'] = pd.Series(pfo_wod)
+pos_neg['제긍 빈도 수'] = pd.Series(pfo_freq)
+pos_neg['제부 키워드'] = pd.Series(nfo_wod)
+pos_neg['제부 빈도 수'] = pd.Series(nfo_freq)
+pos_neg['향긍 키워드'] = pd.Series(psc_wod)
+pos_neg['향긍 빈도 수'] = pd.Series(psc_freq)
+pos_neg['향부 키워드'] = pd.Series(nsc_wod)
+pos_neg['향부 빈도 수'] = pd.Series(nsc_freq)
+del pos_neg['index']
+os.chdir('/content/gdrive/My Drive/RED/data/카테고리별 국가별 제품들/태국/bERT')
+pos_neg.to_csv('태국.csv', encoding = 'utf-8-sig', index = False)
+
+pos_neg
+
+
+
+  
+
+####Model_Prediction##
+
+import os.pathhttp://localhost:8888/notebooks/Desktop/%EC%BD%94%ED%8A%B8%EB%9D%BC/%EC%82%AC%EC%9A%A9%20%EC%BD%94%EB%93%9C%20%EB%AA%A8%EC%9D%8C/Word_Embedding_cleansing/Embedding_Model_Prediction/RED_Model_Prediction.ipynb#RED_Model_Prediction
+import pandas as pd
+import numpy as np
+from pykospacing import spacing
+import rhinoMorph
+import pickle
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Load Model
+import os
+from tensorflow.keras.models import load_model
+
+filepath = 'C:\py_test\project\project_kotra\RNN_cleansing\word2vec'
+os.chdir(filepath)
+print("Current Directory:", os.getcwd())
+
+loaded_model = load_model('text_multi_we_model.h5')
+print("model loaded:", loaded_model)
+
+with open('text_multi_we_tokenizer.pickle', 'rb') as handle:
+       loaded_tokenizer = pickle.load(handle)
+       
+rn = rhinoMorph.startRhino()
+maxlen = 200  
+
+review_file = pd.read_csv('C:/py_test/project/project_kotra/RNN_cleansing/reviews/vie_foam_cleansing.csv', encoding='utf-8-sig')
+review_list = list(review_file['리뷰'])
+
+review_result = []
+for i in range(len(review_list)) :
+    text = review_list[i]
+    text = spacing(review_list[i])
+    text=[rhinoMorph.onlyMorph_list(rn, text, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'], eomi=False)]
+    
+    data = loaded_tokenizer.texts_to_sequences(text)
+    x_test = pad_sequences(data, maxlen=maxlen)
+    predictions = loaded_model.predict(x_test)                     
+    print("review_list[%s]:"%i, np.argmax(predictions[0]))
+    aa =  np.argmax(predictions[0])
+    review_result.append(aa)
+    
+
+df = pd.DataFrame(review_result)
+df.to_csv('C:/py_test/project/project_kotra/RNN_cleansing/reviews/vie_foam_cleansing_dis.csv', encoding='utf-8-sig', index=False, header=True)
+print('prediction_finish')
+
+
+
+##텍스트 다중분류 워드 임베딩(클렌징 리뷰)##
+#Word2Vec#
+
+# 학습할 텍스트 읽기 
+import os.path
+from pykospacing import spacing
+
+embedding_dim = 50                                       # 임베딩 차원수 설정
+
+filepath = 'C:\py_test\project\project_kotra\RNN_cleansing\word2vec'
+os.chdir(filepath)                                       # 경로 설정
+print("Current Directory:", os.getcwd())
+
+with open('review_dic.txt', 'r', encoding='utf-8') as f:  # 테스트용 파일 읽기 
+    data = f.read()
+    
+import rhinoMorph
+from nltk.tokenize import sent_tokenize
+import nltk
+nltk.download('punkt')
+
+sent_data = sent_tokenize(data)
+rn = rhinoMorph.startRhino()
+
+print('type', type(sent_data))
+print('length', len(sent_data))
+print('sentence sample', sent_data[:20])
+
+# 텍스트의 형태소 분석
+total_lines = len(sent_data)
+cnt = 0
+with open('review_dic_morphed.txt', 'w', encoding='utf-8') as f:
+    for data_each in sent_data:
+        morphed_data_spacing = spacing(data_each)
+        morphed_data_each = rhinoMorph.onlyMorph_list(rn, morphed_data_spacing, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'])
+        joined_data_each = ' '.join(morphed_data_each)
+        if joined_data_each:
+            f.write(joined_data_each + '\n')
+        cnt += 1
+        if (cnt % 1000) == 0:  # 진행정도 확인을 위해 1000번째 문장마다 확인
+            print(round(cnt/total_lines * 100, 3), '%')
+    print('Morphological Analysis Completed.')
+    
+
+# 형태소 분석 결과를 읽어 리스트로 만들기
+def read_data(filename, encoding='utf-8'):                # 읽기 함수 정의
+    with open(filename, 'r', encoding=encoding) as f:
+        data = [line.split(' ') for line in f.read().splitlines()]
+    return data
+
+
+data = read_data('review_dic_morphed.txt', 'utf-8')
+
+print(len(data))
+
+# 임베딩 구성 
+from gensim.models import Word2Vec
+os.chdir('C:\py_test\project\project_kotra\RNN_cleansing\word2vec')
+
+model = Word2Vec(sentences=data, size=embedding_dim, window=10, min_count=5, workers=4, sg=1)
+model.save('embedding_skipgram_review.model')
+
+print('Completed.')
+print(type(data))
+print(data[:3])
+
+# 임베딩 값 저장 
+words = list(model.wv.vocab)
+with open('embedding_skipgram_review.txt', 'w') as f:
+    for word in words:
+        data = model.wv[word].tolist()      # 현재 단어의 임베딩 값을 가져온다
+        print('data_pre:', data)            # 현재 단어의 임베딩 값을 출력해본다
+
+        data.insert(0, word)                # 시작 부분에 해당 단어를 넣는다
+        print('data_after:', data)          # 현재 단어의 이름과 함께 임베딩 값을 출력해본다 
+
+        for item in data:                   # 단어 이름부터 시작하여 각 벡터의 값을 저장한다
+            f.write("%s " % item)
+        f.write("\n")
+# 유사어 찾기
+model = Word2Vec.load('embedding_skipgram_review.model')    # 미리 만들어진 워드 임베딩을 사용한다 
+
+print('--- 유사단어 출력 ---')
+similarWords = model.wv.most_similar(positive=['기능'], topn=5)
+print(similarWords)
+
+word = []
+for similarWord in similarWords:
+    word.append(similarWord[0])
+
+print(word)
+
+# 두 단어 사이의 유사도 계산
+print('--- 두 단어의 유사도 계산 ---')
+print('약산성과 자극:', model.wv.similarity('제형', '향'))
+print('개운과 사용감:', model.wv.similarity('거품', '제형'))
+print('거품과 제형:', model.wv.similarity('여드름', '향'))
+
+##한글 네이버 다중분류##
+
+# 경로 설정
+cleansing_dir = 'C:/py_test/project/project_kotra/RNN_cleansing'
+
+# Data Loading Preparation
+import os
+
+train_dir = os.path.join(cleansing_dir, 'train')
+test_dir = os.path.join(cleansing_dir, 'test')
+
+label_types = ['기능성', '사용감', '세정력', '자극성', '제형', '향']
+
+# text와 labels 리스트를 만드는 함수를 작성한다
+def make_texts_labels(dir, label_types, encode='utf8'):    	# texts와 labels 리스트를 만드는 함수
+    texts = []
+    labels = []
+  
+    for label_type in label_types:
+        dir_name = os.path.join(dir, label_type) 		  # 각각의 label 폴더에 접근한다
+        for fname in os.listdir(dir_name):
+            if fname[-4:] == '.txt':                    # 마지막 4 글자가 .txt 로 끝나는지를 확인한다
+                f = open(os.path.join(dir_name, fname), encoding=encode)
+                texts.append(f.read())                    # 텍스트를 읽어서 texts 리스트에 연결한다
+                f.close()
+        
+            if label_type == label_types[0]:          # 만약 현재 폴더가 '건강정보' 폴더라면
+                labels.append(0)                        # texts와 같은 순서의 labels 리스트에는 0을 저장한다
+            elif label_type == label_types[1]:
+                labels.append(1)
+            elif label_type == label_types[2]:
+                labels.append(2)
+            elif label_type == label_types[3]:
+                labels.append(3)
+            elif label_type == label_types[4]:
+                labels.append(4)
+            elif label_type == label_types[5]:
+                labels.append(5)
+                
+    return texts, labels
+    
+  # Train Data Loading
+# 훈련 데이터의 텍스트와 라벨을 받아온다
+
+texts, labels = make_texts_labels(train_dir, label_types)
+
+print('texts 0:', texts[0])
+print('texts len:', len(texts))
+print('labels 0:', labels[0])
+print('labels len:', len(labels))
+
+
+# Analyzing Morphology
+# 한글은 tokenizing을 위해서 먼저 형태소분석을 해야 한다
+import rhinoMorph
+rn = rhinoMorph.startRhino()                         		
+
+# 리스트 컴프리헨션으로 실질형태소만을 리스트로 가져온다
+texts = [rhinoMorph.onlyMorph_list(rn, sentence, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'], eomi=False) for sentence in texts]
+
+# print(texts)
+# print(texts[0])
+
+# Data Tokenizing
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import numpy as np
+import math
+9
+validation_ratio = math.floor(len(texts) * 0.15)    	# 30%는 검증데이터로 사용한다. 나머지는 훈련데이터
+max_words = 10000                                   # 데이터셋에서 가장 빈도 높은 10,000 개의 단어만 사용한다
+maxlen = 200                                        # 200개 이후의 단어는 버린다
+class_number = 6                                 # 분류할 클래스의 수
+
+tokenizer = Tokenizer(num_words=max_words)  	      # 상위빈도 10,000 개의 단어만을 추려내는 Tokenizer 객체 생성
+tokenizer.fit_on_texts(texts)                       # 단어 인덱스를 구축한다
+word_index = tokenizer.word_index 
+
+# 전체 데이터가 가지고 있는 토큰의 수를 보여준다. texts_to_sequences()를 거쳐야 10,000개만 남는다. 
+
+print('전체에서 %s개의 고유한 토큰을 찾았습니다.' % len(word_index))
+print('word_index type: ', type(word_index))
+# print('word_index: ', word_index)
+
+# Data Sequencing
+# train 데이터를 Sequencing 한다
+# 상위 빈도 10,000개의 단어를 word_index의 숫자 리스트로 변환. Tokenizer 결과가 여기서 반영된다
+data = tokenizer.texts_to_sequences(texts) 
+
+# maxlen의 수만큼으로 2D 텐서를 만든다
+data = pad_sequences(data, maxlen=maxlen)
+
+print('data:', data)
+
+# One-Hot Encoding
+# 원-핫 인코딩 함수
+def to_one_hot(labels, dimension):
+    results = np.zeros((len(labels), dimension))
+    for i, label in enumerate(labels):
+                 results[i, label] = 1.
+    return results
+
+
+# 입력층에는 원-핫 인코딩을 수행하지 않는다
+# data = to_one_hot(data, dimension=max_words)
+
+# 출력층만 원-핫 인코딩을 수행한다 
+labels = to_one_hot(labels, dimension=class_number)
+
+# 출력층의 형태
+print(labels)
+
+# Train data와 Validation data 준비
+
+print('데이터 텐서의 크기:', data.shape)        	# (90, 10000)
+print('레이블 텐서의 크기:', labels.shape)      	# (90, 9) data와 label이 모두 2D 텐서가 되었음
+
+indices = np.arange(data.shape[0])      		      # 0 ~ 89 까지의 숫자를 생성
+np.random.shuffle(indices)                        # 0 ~ 89 까지의 숫자를 랜덤하게 섞음
+data = data[indices]                              # 이것을 인덱스로 하여 2D 텐서 데이터를 섞음
+labels = labels[indices]                          # label도 같은 순서로 섞음
+
+x_train = data[validation_ratio:]                 # 훈련데이터의 70%를 훈련데이터
+y_train = labels[validation_ratio:]               # 훈련데이터의 70%를 훈련데이터 Label
+x_val = data[:validation_ratio]                   # 훈련데이터의 30%를 검증데이터
+y_val = labels[:validation_ratio]                 # 훈련데이터의 30%를 검증데이터 Label
+
+# 모델 정의하기 - Word2Vec Embedding (1), 임베딩 딕셔너리 로딩
+embeddings_index = {}
+f = open(os.path.join('C:\py_test\project\project_kotra\RNN_cleansing\word2vec\embedding_skipgram_review.txt'), encoding='cp949')   #_big : CP949
+for line in f:
+    values = line.split()
+    word = values[0]                                  # 각 행의 단어
+    coefs = np.asarray(values[1:], dtype='float32')   # 각 단어의 임베딩값
+    embeddings_index[word] = coefs
+f.close()
+
+print('%s개의 단어 벡터를 찾았습니다.' % len(embeddings_index))
+
+embedding_dim = 50
+
+# 모델 정의하기 - Word2Vec Embedding (2), 임베딩 행렬 구성
+embedding_matrix = np.zeros((max_words, embedding_dim))     # 0으로 채워진 빈 행렬 구성
+for word, i in word_index.items():
+    if i < max_words:                                       # max_words 이하의 범위에서 순회
+        embedding_vector = embeddings_index.get(word)       # 해당 단어의 임베딩 벡터를 가져온다 
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector          # 임베딩 값을 해당 행렬 위치에 주입한다
+            
+# 모델 정의하기 - Word2Vec Embedding (3), 임베딩 층 쌓기
+from tensorflow.keras import models
+from tensorflow.keras import layers
+
+model = models.Sequential()                 		# 모델을 새로 정의
+
+# 임베딩 층. 나중에 임베딩된 입력을 Flatten 층에서 펼치기 위해 input_length(=maxlen)를 지정. 출력층은 (input_dim, input_length, output_dim)가 됨
+model.add(layers.Embedding(input_dim=max_words, output_dim=embedding_dim, input_length=maxlen))
+model.add(layers.Flatten())                     # 3D 임베딩 텐서를 (input_dim, input_length * output_dim) 크기의 2D 텐서로 펼친다
+
+# 은닉층
+model.add(layers.Dense(units=32, activation='relu'))
+
+# 출력층. 출력 노드는 분류 개수인 9. 활성화 함수는 sigmoid와 성격이 같으나 다중분류에 사용되는 함수인 softmax 함수를 사용한다. 확률값을 출력
+model.add(layers.Dense(units=class_number, activation='softmax'))
+
+# 모델 정의하기 - Word2Vec Embedding (4), 임베딩 행렬의 값 주입
+model.layers[0].set_weights([embedding_matrix])
+model.layers[0].trainable = False
+
+# 모델 정의하기, Keras Embedding
+# 보다 쉽게 사용할 수 있는 Keras Embedding으로 진행
+from tensorflow.keras import models
+from tensorflow.keras import layers
+
+embedding_dim = 50                              # 임베딩의 차원을 설정한다. 보통 200까지에서 적절히 설정한다. 
+model = models.Sequential()                 		# 모델을 새로 정의
+
+# 임베딩 층. 나중에 임베딩된 입력을 Flatten 층에서 펼치기 위해 input_length(=maxlen)를 지정. 출력층은 (input_dim, input_length, output_dim)가 됨
+model.add(layers.Embedding(input_dim=max_words, output_dim=embedding_dim, input_length=maxlen))
+model.add(layers.Flatten())                     # 3D 임베딩 텐서를 (input_dim, input_length * output_dim) 크기의 2D 텐서로 펼친다
+
+# 은닉층
+model.add(layers.Dense(units=32, activation='relu'))
+
+# 출력층. 출력 노드는 분류 개수인 9. 활성화 함수는 sigmoid와 성격이 같으나 다중분류에 사용되는 함수인 softmax 함수를 사용한다. 확률값을 출력
+model.add(layers.Dense(units=class_number, activation='softmax'))
+
+# 모델 요약 출력
+model.summary()
+
+# Compile Model
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
+
+# Train Model
+history = model.fit(x_train, y_train, epochs=7, batch_size=32, validation_data=(x_val, y_val))
+history_dict = history.history
+
+# multidimensional numpy arrays를 저장할 수 있는 h5 file(HDF) 포맷으로 저장한다
+model.save('text_multi_we_model.h5') 	     # 모델 저장
+
+# 훈련데이터에서 사용된 상위빈도 10,000개의 단어로 된 Tokenizer 저장
+# 새로 입력되는 문장에서도 같은 단어가 추출되게 한다
+import pickle
+with open('text_multi_we_tokenizer.pickle', 'wb') as handle:
+     pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
+     
+# Accuracy and Loss 확인
+# history 딕셔너리 안에 있는 정확도와 손실값을 가져와 본다
+acc = history.history['acc']
+val_acc = history.history['val_acc']
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+print('Accuracy of each epoch:', acc)
+epochs = range(1, len(acc) +1)
+
+# Plotting Accuracy
+# 정확도와 손실값의 변화를 보고, epoch를 어디에서 조절해야 할 지를 가늠한다.
+# 정확도가 떨어지는 구간, 손실값이 높게 나타나는 구간을 확인한다
+# 데이터가 큰 경우 대개 epoch를 늘려야 최적값에 도달한다
+import matplotlib.pyplot as plt
+
+# 정확도 그리기
+plt.plot(epochs, acc, 'bo', label='Training Acc')
+plt.plot(epochs, val_acc, 'b', label='Validation Acc')
+plt.title('Training and validation accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()            			
+
+# Plotting Loss
+plt.figure()            		# 새로운 그림을 그린다
+
+# 손실값 그리기
+plt.plot(epochs, loss, 'bo', label='Training Loss')
+plt.plot(epochs, val_loss, 'b', label='Validation Loss')
+plt.title('Training and validation loss')
+plt.xlabel('Epochs')
+plt.ylabel('loss')
+plt.legend()            		
+
+plt.show()
+
+# Load Model
+import os
+from tensorflow.keras.models import load_model
+
+filepath = 'C:\py_test\project\project_kotra\RNN_cleansing\word2vec'
+os.chdir(filepath)
+print("Current Directory:", os.getcwd())
+
+loaded_model = load_model('text_multi_we_model.h5')
+print("model loaded:", loaded_model)
+
+with open('text_multi_we_tokenizer.pickle', 'rb') as handle:
+       loaded_tokenizer = pickle.load(handle)
+       
+       
+# Test Data Loading
+# 테스트 데이터의 텍스트와 라벨을 받아온다
+texts, labels = make_texts_labels(test_dir, label_types)
+textt = []
+
+for i in range(len(texts)) :
+    text = texts[i]
+    text = spacing(text)
+    text = rhinoMorph.onlyMorph_list(rn, text, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'], eomi=False)
+    textt.append(text)
+
+print('textt 0:', textt[0])
+print('text len:', len(textt))
+print('labels 0:', labels[0])
+print('labels len:', len(labels))
+
+# 로딩된 tokenizer로 test 데이터를 Sequencing 한다
+data = loaded_tokenizer.texts_to_sequences(textt) # 문자열을 숫자 리스트로 변환
+x_test = pad_sequences(data, maxlen=maxlen)     	    # maxlen의 수만큼으로 2D 텐서를 만듦
+
+# label에 해당하는 부분만 one-hot-encoding 한다.
+#x_test = to_one_hot(data, dimension=max_words)
+y_test = to_one_hot(labels, dimension=class_number)
+
+predictions = loaded_model.predict(x_test)
+print('predictions shape:', predictions.shape)
+print('prediction 0 shape:', predictions[0].shape)
+print('prediction 0 sum', np.sum(predictions[0]))             # 모든 분류에 대한 확률의 총합은 1이 되어야 한다
+
+print('prediction 0 value:', predictions[0])                  # 9개 분류 각각에 대한 확률값
+print('prediction 0 max value:', np.argmax(predictions[0]))  	# prediction 0이 가지고 있는 가장 큰 값의 판정 결과
+print('prediction 1 max value:', np.argmax(predictions[1]))   # prediction 1이 가지고 있는 가장 큰 값의 판정 결과
+print('prediction 2 max value:', np.argmax(predictions[2]))   # prediction 2가 가지고 있는 가장 큰 값의 판정 결과
+
+loaded_model.evaluate(x_test, y_test)
+
+##1개의 데이터 예측##
+
+# 1개 데이터 예측
+text = ['거품처럼 나와서 좋긴한데 여드름에 효과는 없는듯해요 그래도 자극은 확실히 덜 해요 그래도 여드름에는 확실한듯']
+text = spacing(text[0])
+print('띄어쓰기 결과: ',text)
+text=[rhinoMorph.onlyMorph_list(rn, text, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'], eomi=False)]
+print('형태소 분석 결과:',text)
+
+data = loaded_tokenizer.texts_to_sequences(text)
+x_test = pad_sequences(data, maxlen=maxlen)
+
+predictions = loaded_model.predict(x_test)
+print("Result:", predictions)                           # 각 분류에 대한 확률을 보여준다
+print("분류 결과:", np.argmax(predictions[0]))         	# 가장 큰 확률값을 가진 분류 제시. 0~8 숫자 중 하나
+
+##여러개의 데이터 예측##
+import pandas as pd
+
+re_list = []
+
+for i in range(len(re_list)) :
+    text = texts[i]
+    text = spacing(texts[i])
+    text=[rhinoMorph.onlyMorph_list(rn, text, pos=['NNG', 'NNP', 'NP', 'VV', 'VA', 'XR', 'IC', 'MM', 'MAG', 'MAJ'], eomi=False)]
+    
+    data = loaded_tokenizer.texts_to_sequences(text)
+    x_test = pad_sequences(data, maxlen=maxlen)
+    predictions = loaded_model.predict(x_test)                     
+    print("text[%s]:"%i, np.argmax(predictions[0]))
+    aa =  np.argmax(predictions[0])
+    review_list.append(aa)
+    
+df = pd.DataFrame(review_list)
+df.to_csv('C:/py_test/project/project_kotra/RNN_cleansing/reviews/result.csv', encoding='utf-8', index=False, header=True)
