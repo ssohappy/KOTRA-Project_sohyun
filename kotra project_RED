@@ -410,7 +410,7 @@ e_time = time.time( )
 t_time = e_time - s_time
 driver.close()
 print('소요시간 :%s초' %round(t_time, 1))
-print('시마이 땡')
+print('크롤링 끝났다아 얼른 확인해봐')
 
 
 
